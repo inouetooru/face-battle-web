@@ -176,6 +176,15 @@ export default function GameEngine() {
 
             {/* Ad Banner */}
             <AdBanner />
+
+            {/* Landscape Prompt */}
+            <div className="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center md:hidden landscape:hidden text-center p-8">
+                <div className="animate-spin mb-4">
+                    <RotateCcw className="w-12 h-12 text-white" />
+                </div>
+                <h2 className="text-xl font-bold mb-2">ROTATE DEVICE</h2>
+                <p className="text-gray-400 text-sm">Please turn your phone sideways for 2-Player Battle</p>
+            </div>
         </div>
     );
 }
