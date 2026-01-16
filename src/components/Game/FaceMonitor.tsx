@@ -72,16 +72,69 @@ export default function FaceMonitor({ onSmile, isGameRunning }: Props) {
                     }
 
                     // Draw AR effects (Simple Canvas overlay)
-                    if (canvasRef.current) {
+                    if (canvasRef.current && canvasRef.current.width > 0 && canvasRef.current.height > 0) {
                         const ctx = canvasRef.current.getContext('2d');
                         if (ctx) {
                             ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-                            canvasRef.current.width = video.videoWidth;
-                            canvasRef.current.height = video.videoHeight;
 
-                            // Simple AR: Draw box around smiling mouth or eyes?
-                            // Let's just draw debug text for now or simple "Laughing" text
-                            // result.faceLandmarks gives coordinates.
+                            // Loop through all detected faces
+                            result.faceLandmarks.forEach((landmarks) => {
+                                const width = canvasRef.current!.width;
+                                const height = canvasRef.current!.height;
+
+                                // Helper to magnify a region
+                                const magnify = (limitIndex: number, scale: number, sizeMult: number) => {
+                                    const point = landmarks[limitIndex];
+                                    const cx = point.x * width;
+                                    const cy = point.y * height;
+
+                                    // Estimate face size (simple approximation using distance between eyes or just fixed relative to frame)
+                                    // Better: use distance between index 234 and 454 (cheekbones) for scale
+                                    const leftCheek = landmarks[234];
+                                    const rightCheek = landmarks[454];
+                                    const faceWidth = Math.abs(leftCheek.x - rightCheek.x) * width;
+
+                                    const size = faceWidth * sizeMult; // Feature size
+
+                                    const sx = cx - size / 2;
+                                    const sy = cy - size / 2;
+
+                                    // Save context to clip circular region
+                                    ctx.save();
+                                    ctx.beginPath();
+                                    ctx.arc(cx, cy, size / 2, 0, Math.PI * 2);
+                                    ctx.clip();
+
+                                    // Draw the magnified image
+                                    // We assume 'video' is the source. Note: source coords match canvas coords if both map to video frame.
+                                    // However, we want to sample a *smaller* region and draw it *larger* (or same region larger?)
+                                    // To make "Big Eyes", we sample normal size and draw bigger? 
+                                    // Or sample from center and scale up?
+
+                                    // Source: Small region around center
+                                    const srcSize = size / scale;
+                                    const srcX = cx - srcSize / 2;
+                                    const srcY = cy - srcSize / 2;
+
+                                    ctx.drawImage(
+                                        video,
+                                        srcX, srcY, srcSize, srcSize, // Source
+                                        sx, sy, size, size // Destination (Original size bounding box, but filled with smaller source = zoom)
+                                    );
+
+                                    // Optional: Add border or glow
+                                    // ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                                    // ctx.lineWidth = 2;
+                                    // ctx.stroke();
+
+                                    ctx.restore();
+                                };
+
+                                // Left Eye (468), Right Eye (473), Mouth (13)
+                                magnify(468, 2.0, 0.25); // Left Eye
+                                magnify(473, 2.0, 0.25); // Right Eye
+                                magnify(13, 1.5, 0.35);  // Mouth
+                            });
                         }
                     }
                 }
